@@ -49,17 +49,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const allPlugins = pluginManager.getAllPlugins();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/50">
-          <div className="flex items-center gap-2 text-slate-100 font-semibold text-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-zinc-950/60">
+          <div className="flex items-center gap-2 text-zinc-100 font-bold text-lg">
             <Key className="w-5 h-5 text-cyan-400" />
             <span>NovaRin Settings (BYOK)</span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition"
+            className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -74,33 +74,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </h3>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">OpenAI API Key</label>
+              <label className="text-sm font-medium text-zinc-300">OpenAI API Key</label>
               <input
                 type="password"
                 placeholder="sk-..."
                 value={formData.openaiApiKey}
                 onChange={e => handleChange('openaiApiKey', e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-cyan-500 transition"
               />
-              <p className="text-xs text-slate-500">Stored locally in browser. Leave empty if using local Ollama/LM Studio without auth.</p>
+              <p className="text-xs text-zinc-500">Stored locally in browser. Leave empty if using local Ollama/LM Studio without auth.</p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                <Server className="w-4 h-4 text-slate-400" /> Custom Base URL (Optional)
+              <label className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                <Server className="w-4 h-4 text-zinc-400" /> Custom Base URL (Optional)
               </label>
               <input
                 type="text"
                 placeholder="https://api.groq.com/openai/v1 or https://openrouter.ai/api/v1"
                 value={formData.openaiBaseUrl}
                 onChange={e => handleChange('openaiBaseUrl', e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-cyan-500 transition"
               />
-              <p className="text-xs text-slate-500">Overrides standard OpenAI endpoint. Supports Groq, OpenRouter, Together AI, or local endpoints (e.g., http://localhost:11434/v1).</p>
+              <p className="text-xs text-zinc-500">Overrides standard OpenAI endpoint. Supports Groq, OpenRouter, Together AI, or local endpoints (e.g., http://localhost:11434/v1).</p>
             </div>
           </div>
 
-          <hr className="border-slate-800" />
+          <hr className="border-zinc-800/80" />
 
           {/* Google Gemini Configuration */}
           <div className="space-y-3">
@@ -109,18 +109,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </h3>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Gemini API Key</label>
+              <label className="text-sm font-medium text-zinc-300">Gemini API Key</label>
               <input
                 type="password"
                 placeholder="AIzaSy..."
                 value={formData.googleApiKey}
                 onChange={e => handleChange('googleApiKey', e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-cyan-500 transition"
               />
             </div>
           </div>
 
-          <hr className="border-slate-800" />
+          <hr className="border-zinc-800/80" />
 
           {/* Model Selection */}
           <div className="space-y-3">
@@ -129,11 +129,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </h3>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Active Model</label>
+              <label className="text-sm font-medium text-zinc-300">Active Model</label>
               <select
                 value={formData.selectedModel}
                 onChange={e => handleChange('selectedModel', e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 transition"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-cyan-500 transition"
               >
                 {DEFAULT_MODELS.map(m => (
                   <option key={m.id} value={m.id}>
@@ -155,7 +155,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 placeholder="Or enter custom model ID (e.g. deepseek-r1, llama-3.3-70b-versatile)"
                 value={customModelInput}
                 onChange={e => setCustomModelInput(e.target.value)}
-                className="flex-1 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-slate-200 text-xs focus:outline-none focus:border-cyan-500"
+                className="flex-1 px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-cyan-500"
               />
               <button
                 type="button"
@@ -165,30 +165,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     setCustomModelInput('');
                   }
                 }}
-                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition"
+                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition"
               >
                 Use Model
               </button>
             </div>
           </div>
 
-          <hr className="border-slate-800" />
+          <hr className="border-zinc-800/80" />
 
           {/* Global System Prompt */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-300">Global System Prompt / Persona</label>
+            <label className="text-sm font-medium text-zinc-300">Global System Prompt / Persona</label>
             <textarea
               rows={3}
               value={formData.systemPrompt}
               onChange={e => handleChange('systemPrompt', e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-cyan-500 transition resize-none"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-100 text-sm focus:outline-none focus:border-cyan-500 transition resize-none"
             />
           </div>
 
           {/* Plugin Manager */}
           {allPlugins.length > 0 && (
             <>
-              <hr className="border-slate-800" />
+              <hr className="border-zinc-800/80" />
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold tracking-wider text-cyan-400 uppercase flex items-center gap-2">
                   <Plug className="w-4 h-4" /> Installed Plugins
@@ -203,12 +203,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
                           isChecked
                             ? 'bg-cyan-950/20 border-cyan-500/40'
-                            : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                            : 'bg-zinc-950 border-zinc-800 hover:border-zinc-700'
                         }`}
                       >
                         <div>
-                          <div className="text-sm font-medium text-slate-200">{plugin.name} <span className="text-xs text-slate-500">v{plugin.version}</span></div>
-                          <div className="text-xs text-slate-400">{plugin.description}</div>
+                          <div className="text-sm font-medium text-zinc-200">{plugin.name} <span className="text-xs text-zinc-500">v{plugin.version}</span></div>
+                          <div className="text-xs text-zinc-400">{plugin.description}</div>
                         </div>
                         <input
                           type="checkbox"
@@ -229,13 +229,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-slate-800 text-sm font-medium transition"
+              className="px-4 py-2 rounded-xl text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 text-sm font-medium transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-semibold text-sm flex items-center gap-2 transition shadow-lg shadow-cyan-500/20"
+              className="px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-zinc-950 font-bold text-sm flex items-center gap-2 transition shadow-lg shadow-cyan-500/20"
             >
               {savedNotice ? (
                 <>

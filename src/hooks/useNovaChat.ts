@@ -34,7 +34,9 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
       if (!textToSend.trim() || !activeSessionId || isLoading) return;
 
       setError(null);
-      setInput('');
+      if (!overrideContent) {
+        setInput('');
+      }
 
       // Run plugin hooks
       const processedUserText = await pluginManager.processBeforeSend(
@@ -115,7 +117,6 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
         }
       } catch (err: any) {
         if (err.name === 'AbortError') {
-          // User canceled stream - save whatever was accumulated so far
           if (streamingContent) {
             const assistantMsgId = `msg_${Date.now()}_assistant_stopped`;
             await db.messages.add({
@@ -139,6 +140,99 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
     [input, activeSessionId, isLoading, settings, streamingContent]
   );
 
+  // Regenerate Response: Delete last assistant response (and optionally last user message or resend)
+  const regenerateResponse = useCallback(async () => {
+    if (!activeSessionId || isLoading || messages.length === 0) return;
+
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg.role === 'assistant') {
+      await db.messages.delete(lastMsg.id);
+    }
+
+    // Now re-trigger AI stream with history up to last user message
+    setError(null);
+    setIsLoading(true);
+    setStreamingContent('');
+
+    const history = await db.messages.where('chatId').equals(activeSessionId).sortBy('createdAt');
+    if (history.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+
+    const coreMessages = history.map(m => ({
+      role: m.role as 'user' | 'assistant' | 'system',
+      content: m.content
+    }));
+
+    if (settings.systemPrompt) {
+      coreMessages.unshift({
+        role: 'system',
+        content: settings.systemPrompt
+      });
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    try {
+      const { model } = getLanguageModel(settings);
+
+      const result = streamText({
+        model,
+        messages: coreMessages,
+        abortSignal: controller.signal,
+      });
+
+      let fullText = '';
+      for await (const chunk of result.textStream) {
+        fullText += chunk;
+        setStreamingContent(fullText);
+      }
+
+      if (fullText) {
+        const assistantMsgId = `msg_${Date.now()}_assistant`;
+        await db.messages.add({
+          id: assistantMsgId,
+          chatId: activeSessionId,
+          role: 'assistant',
+          content: fullText,
+          createdAt: Date.now(),
+        });
+      }
+    } catch (err: any) {
+      if (err.name !== 'AbortError') {
+        console.error('Error during regenerate:', err);
+        setError(err.message || 'An error occurred while regenerating response.');
+      }
+    } finally {
+      setIsLoading(false);
+      setStreamingContent('');
+      abortControllerRef.current = null;
+    }
+  }, [activeSessionId, isLoading, messages, settings]);
+
+  // Edit prompt and resend
+  const editUserMessage = useCallback(
+    async (messageId: string, newContent: string) => {
+      if (!activeSessionId || isLoading) return;
+
+      // Find the index of the message to edit
+      const targetIndex = messages.findIndex(m => m.id === messageId);
+      if (targetIndex === -1) return;
+
+      // Delete the message and all subsequent messages in Dexie
+      const msgsToDelete = messages.slice(targetIndex);
+      for (const msg of msgsToDelete) {
+        await db.messages.delete(msg.id);
+      }
+
+      // Send the edited content as new user message
+      await sendMessage(newContent);
+    },
+    [activeSessionId, isLoading, messages, sendMessage]
+  );
+
   return {
     messages,
     input,
@@ -148,5 +242,7 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
     error,
     sendMessage,
     stop,
+    regenerateResponse,
+    editUserMessage,
   };
 }
