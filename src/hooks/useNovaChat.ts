@@ -66,18 +66,17 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
 
       // Fetch history for AI prompt context
       const history = await db.messages.where('chatId').equals(activeSessionId).sortBy('createdAt');
-      const coreMessages = history.map(m => ({
-        role: m.role as 'user' | 'assistant' | 'system',
+    if (history.length === 0) {
+      setIsLoading(false);
+      return;
+    }
+
+    const coreMessages = history
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
         content: m.content
       }));
-
-      // Prepend system prompt if present
-      if (settings.systemPrompt) {
-        coreMessages.unshift({
-          role: 'system',
-          content: settings.systemPrompt
-        });
-      }
 
       setIsLoading(true);
       setStreamingContent('');
@@ -90,6 +89,7 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
 
         const result = streamText({
           model,
+          system: settings.systemPrompt || undefined,
           messages: coreMessages,
           abortSignal: controller.signal,
         });
@@ -160,17 +160,12 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
       return;
     }
 
-    const coreMessages = history.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content
-    }));
-
-    if (settings.systemPrompt) {
-      coreMessages.unshift({
-        role: 'system',
-        content: settings.systemPrompt
-      });
-    }
+    const coreMessages = history
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content
+      }));
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -180,6 +175,7 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
 
       const result = streamText({
         model,
+        system: settings.systemPrompt || undefined,
         messages: coreMessages,
         abortSignal: controller.signal,
       });
