@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { streamText } from 'ai';
-import { db } from '../lib/db';
+import { db, renameChat } from '../lib/db';
 import { getLanguageModel } from '../lib/ai';
 import { pluginManager } from '../plugins/manager';
 import type { ChatMessage, Settings } from '../types';
@@ -55,29 +55,29 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
       };
       await db.messages.add(userMsg);
 
-      // Update session title if first message
+      // Update session title if first message or title is 'New Conversation'
+      const session = await db.sessions.get(activeSessionId);
       const existingMsgCount = await db.messages.where('chatId').equals(activeSessionId).count();
-      if (existingMsgCount <= 1) {
-        const titleSnippet = processedUserText.slice(0, 30) + (processedUserText.length > 30 ? '...' : '');
-        await db.sessions.update(activeSessionId, { title: titleSnippet, updatedAt: Date.now() });
+      if (!session || session.title === 'New Conversation' || existingMsgCount <= 1) {
+        let cleanTitle = processedUserText.trim().slice(0, 38).trim();
+        if (cleanTitle) {
+          if (processedUserText.trim().length > 38) {
+            cleanTitle += '...';
+          }
+          await renameChat(activeSessionId, cleanTitle);
+        }
       } else {
         await db.sessions.update(activeSessionId, { updatedAt: Date.now() });
       }
 
       // Fetch history for AI prompt context
       const history = await db.messages.where('chatId').equals(activeSessionId).sortBy('createdAt');
-      const coreMessages = history.map(m => ({
-        role: m.role as 'user' | 'assistant' | 'system',
-        content: m.content
-      }));
-
-      // Prepend system prompt if present
-      if (settings.systemPrompt) {
-        coreMessages.unshift({
-          role: 'system',
-          content: settings.systemPrompt
-        });
-      }
+      const cleanMessages = history
+        .filter(m => m.role !== 'system')
+        .map(m => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }));
 
       setIsLoading(true);
       setStreamingContent('');
@@ -90,7 +90,8 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
 
         const result = streamText({
           model,
-          messages: coreMessages,
+          system: settings.systemPrompt || 'You are NovaRin, a helpful AI assistant.',
+          messages: cleanMessages,
           abortSignal: controller.signal,
         });
 
@@ -160,17 +161,12 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
       return;
     }
 
-    const coreMessages = history.map(m => ({
-      role: m.role as 'user' | 'assistant' | 'system',
-      content: m.content
-    }));
-
-    if (settings.systemPrompt) {
-      coreMessages.unshift({
-        role: 'system',
-        content: settings.systemPrompt
-      });
-    }
+    const cleanMessages = history
+      .filter(m => m.role !== 'system')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+      }));
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -180,7 +176,8 @@ export function useNovaChat(activeSessionId: string | null, settings: Settings) 
 
       const result = streamText({
         model,
-        messages: coreMessages,
+        system: settings.systemPrompt || 'You are NovaRin, a helpful AI assistant.',
+        messages: cleanMessages,
         abortSignal: controller.signal,
       });
 

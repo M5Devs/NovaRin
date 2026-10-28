@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './lib/db';
+import { db, createChat, deleteChat } from './lib/db';
 import { loadSettings, saveSettings } from './lib/storage';
 import { pluginManager } from './plugins/manager';
 import { wordCounterPlugin } from './plugins/wordCounter';
 import { Sidebar } from './components/Sidebar';
 import { ChatWindow } from './components/ChatWindow';
 import { SettingsModal } from './components/SettingsModal';
-import type { ChatSession, Settings } from './types';
+import type { Settings } from './types';
 
 // Register plugins
 pluginManager.register(wordCounterPlugin);
@@ -18,7 +18,7 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  // Live query for sessions sorted by newest first
+  // Live query for sessions sorted by updatedAt descending
   const sessions = useLiveQuery(
     () => db.sessions.orderBy('updatedAt').reverse().toArray(),
     []
@@ -31,34 +31,34 @@ export function App() {
         setActiveSessionId(sessions[0].id);
       }
     } else {
-      handleNewChat();
+      createChat('New Conversation').then(id => setActiveSessionId(id));
     }
-  }, [sessions.length]);
+  }, [sessions]);
 
   const handleNewChat = async () => {
-    const newSessionId = `chat_${Date.now()}`;
-    const newSession: ChatSession = {
-      id: newSessionId,
-      title: 'New Conversation',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-      model: settings.selectedModel,
-    };
+    // Check if there is already an empty session (0 messages)
+    for (const session of sessions) {
+      const count = await db.messages.where('chatId').equals(session.id).count();
+      if (count === 0) {
+        setActiveSessionId(session.id);
+        return;
+      }
+    }
 
-    await db.sessions.add(newSession);
+    const newSessionId = await createChat('New Conversation');
     setActiveSessionId(newSessionId);
   };
 
   const handleDeleteSession = async (id: string) => {
-    await db.messages.where('chatId').equals(id).delete();
-    await db.sessions.delete(id);
+    const remaining = sessions.filter(s => s.id !== id);
+    await deleteChat(id);
 
     if (activeSessionId === id) {
-      const remaining = sessions.filter(s => s.id !== id);
       if (remaining.length > 0) {
         setActiveSessionId(remaining[0].id);
       } else {
-        setActiveSessionId(null);
+        const newSessionId = await createChat('New Conversation');
+        setActiveSessionId(newSessionId);
       }
     }
   };

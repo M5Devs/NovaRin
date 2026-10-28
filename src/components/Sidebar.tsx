@@ -8,7 +8,6 @@ import {
   PanelLeftOpen,
   Zap,
   Search,
-  MoreVertical,
   Edit2,
   Check,
   X,
@@ -17,7 +16,7 @@ import {
   Calendar
 } from 'lucide-react';
 import type { ChatSession } from '../types';
-import { db } from '../lib/db';
+import { renameChat } from '../lib/db';
 
 interface SidebarProps {
   sessions: ChatSession[];
@@ -43,42 +42,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
   const [editTitleInput, setEditTitleInput] = useState('');
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-  const menuRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpenMenuId(null);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (editingSessionId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingSessionId]);
 
-  const handleStartRename = (session: ChatSession, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleStartRename = (session: ChatSession, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setEditingSessionId(session.id);
     setEditTitleInput(session.title);
-    setOpenMenuId(null);
   };
 
   const handleSaveRename = async (id: string, e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (editTitleInput.trim()) {
-      await db.sessions.update(id, { title: editTitleInput.trim(), updatedAt: Date.now() });
+    const trimmed = editTitleInput.trim();
+    if (trimmed) {
+      await renameChat(id, trimmed);
     }
     setEditingSessionId(null);
   };
 
-  // Grouping logic for sessions
-  const filteredSessions = sessions.filter(s =>
-    (s.title || 'New Conversation').toLowerCase().includes(searchQuery.toLowerCase())
+  const handleCancelRename = () => {
+    setEditingSessionId(null);
+  };
+
+  const handleKeyDown = (id: string, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSaveRename(id);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      handleCancelRename();
+    }
+  };
+
+  // Sort by updatedAt descending first
+  const sortedSessions = [...sessions].sort((a, b) => b.updatedAt - a.updatedAt);
+
+  // Real-time case-insensitive search filter
+  const filteredSessions = sortedSessions.filter(s =>
+    (s.title || 'New Conversation').toLowerCase().includes(searchQuery.toLowerCase().trim())
   );
 
-  const now = Date.now();
-  const ONE_DAY = 24 * 60 * 60 * 1000;
+  // Date threshold calculation
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+  const startOfLast7Days = startOfToday - 6 * 24 * 60 * 60 * 1000;
 
   const todaySessions: ChatSession[] = [];
   const yesterdaySessions: ChatSession[] = [];
@@ -86,112 +100,101 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const olderSessions: ChatSession[] = [];
 
   filteredSessions.forEach(session => {
-    const diff = now - session.updatedAt;
-    if (diff < ONE_DAY) {
+    const time = session.updatedAt;
+    if (time >= startOfToday) {
       todaySessions.push(session);
-    } else if (diff < 2 * ONE_DAY) {
+    } else if (time >= startOfYesterday) {
       yesterdaySessions.push(session);
-    } else if (diff < 7 * ONE_DAY) {
+    } else if (time >= startOfLast7Days) {
       last7DaysSessions.push(session);
     } else {
       olderSessions.push(session);
     }
   });
 
-  const renderSessionGroup = (title: string, groupSessions: ChatSession[]) => {
+  const renderSessionGroup = (groupTitle: string, groupSessions: ChatSession[]) => {
     if (groupSessions.length === 0) return null;
     return (
-      <div className="space-y-0.5 mb-3">
+      <div className="space-y-0.5 mb-3" key={groupTitle}>
         <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
           <Calendar className="w-3 h-3 text-zinc-600" />
-          <span>{title}</span>
+          <span>{groupTitle}</span>
         </div>
         {groupSessions.map(session => {
           const isActive = session.id === activeSessionId;
           const isEditing = session.id === editingSessionId;
-          const isMenuOpen = session.id === openMenuId;
 
           return (
             <div
               key={session.id}
-              onClick={() => onSelectSession(session.id)}
+              onClick={() => {
+                if (!isEditing) {
+                  onSelectSession(session.id);
+                }
+              }}
               className={`group relative flex items-center justify-between px-3 py-2 rounded-xl text-xs cursor-pointer transition-all duration-150 ${
                 isActive
-                  ? 'bg-zinc-800/90 text-cyan-400 font-medium shadow-sm border border-zinc-700/50'
+                  ? 'bg-cyan-950/40 text-cyan-400 font-medium shadow-sm border border-cyan-500/30'
                   : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200 border border-transparent'
               }`}
             >
               <div className="flex items-center gap-2.5 truncate flex-1 min-w-0 pr-1">
                 <MessageSquare className={`w-3.5 h-3.5 flex-shrink-0 ${isActive ? 'text-cyan-400' : 'text-zinc-500'}`} />
                 {isEditing ? (
-                  <form
-                    onSubmit={e => handleSaveRename(session.id, e)}
+                  <div
                     onClick={e => e.stopPropagation()}
                     className="flex items-center gap-1 flex-1"
                   >
                     <input
+                      ref={editInputRef}
                       type="text"
-                      autoFocus
                       value={editTitleInput}
                       onChange={e => setEditTitleInput(e.target.value)}
+                      onKeyDown={e => handleKeyDown(session.id, e)}
+                      onBlur={() => handleSaveRename(session.id)}
                       className="w-full px-1.5 py-0.5 bg-zinc-950 border border-cyan-500/50 rounded text-xs text-zinc-100 focus:outline-none"
                     />
                     <button
-                      type="submit"
+                      type="button"
+                      onClick={() => handleSaveRename(session.id)}
                       className="p-1 text-emerald-400 hover:bg-zinc-800 rounded"
+                      title="Save"
                     >
                       <Check className="w-3 h-3" />
                     </button>
                     <button
                       type="button"
-                      onClick={() => setEditingSessionId(null)}
+                      onClick={handleCancelRename}
                       className="p-1 text-zinc-400 hover:bg-zinc-800 rounded"
+                      title="Cancel"
                     >
                       <X className="w-3 h-3" />
                     </button>
-                  </form>
+                  </div>
                 ) : (
                   <span className="truncate">{session.title || 'New Conversation'}</span>
                 )}
               </div>
 
               {!isEditing && (
-                <div className="relative flex items-center">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={e => handleStartRename(session, e)}
+                    className="p-1 rounded text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800 transition"
+                    title="Rename Chat"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
                   <button
                     onClick={e => {
                       e.stopPropagation();
-                      setOpenMenuId(isMenuOpen ? null : session.id);
+                      onDeleteSession(session.id);
                     }}
-                    className={`p-1 rounded text-zinc-500 hover:text-zinc-200 hover:bg-zinc-700/50 transition ${
-                      isMenuOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                    }`}
+                    className="p-1 rounded text-zinc-400 hover:text-rose-400 hover:bg-zinc-800 transition"
+                    title="Delete Chat"
                   >
-                    <MoreVertical className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
-
-                  {isMenuOpen && (
-                    <div
-                      ref={menuRef}
-                      className="absolute right-0 top-6 w-32 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl z-50 p-1 text-xs space-y-0.5 animate-in fade-in duration-100"
-                    >
-                      <button
-                        onClick={e => handleStartRename(session, e)}
-                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-zinc-300 hover:bg-zinc-800 rounded-lg transition"
-                      >
-                        <Edit2 className="w-3 h-3 text-cyan-400" /> Rename
-                      </button>
-                      <button
-                        onClick={e => {
-                          e.stopPropagation();
-                          setOpenMenuId(null);
-                          onDeleteSession(session.id);
-                        }}
-                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-rose-400 hover:bg-rose-950/40 rounded-lg transition"
-                      >
-                        <Trash2 className="w-3 h-3" /> Delete
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -290,7 +293,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="flex-1 overflow-y-auto px-2 py-1 space-y-1">
         {filteredSessions.length === 0 ? (
           <div className="p-4 text-center text-xs text-zinc-600">
-            {searchQuery ? 'No matching chats found.' : 'No saved conversations.'}
+            {searchQuery ? 'No conversations found' : 'No saved conversations'}
           </div>
         ) : (
           <>
