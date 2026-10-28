@@ -17,13 +17,16 @@ import {
   Download,
   Shield,
   Layers,
-  Server
+  Server,
+  RefreshCw
 } from 'lucide-react';
 import type { Settings } from '../types';
 import { DEFAULT_MODELS } from '../lib/storage';
 import { pluginManager } from '../plugins/manager';
 import { db } from '../lib/db';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { detectProviderFromKey } from '../lib/providerSniffer';
+import { fetchModelsForProvider } from '../lib/modelFetcher';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -44,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [formData, setFormData] = useState<Settings>({ ...settings });
   const [customModelInput, setCustomModelInput] = useState('');
   const [savedNotice, setSavedNotice] = useState(false);
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
 
   // Show/Hide password states for keys
   const [showGeminiKey, setShowGeminiKey] = useState(false);
@@ -55,6 +59,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const messagesCount = useLiveQuery(() => db.messages.count()) ?? 0;
 
   if (!isOpen) return null;
+
+  const handleKeyChange = async (field: keyof Settings, value: string) => {
+    setFormData(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto provider sniffer
+      if (value.trim()) {
+        const detected = detectProviderFromKey(value);
+        if (field === 'groqApiKey' || (field === 'openaiApiKey' && detected === 'groq')) {
+          updated.groqApiKey = value;
+        } else if (field === 'googleApiKey' || detected === 'google') {
+          updated.googleApiKey = value;
+        }
+      }
+      return updated;
+    });
+
+    // Dynamically fetch models when key is pasted
+    if (value.trim().length > 10) {
+      setIsFetchingModels(true);
+      const detected = detectProviderFromKey(value);
+      await fetchModelsForProvider(detected, value, formData.openaiBaseUrl);
+      setIsFetchingModels(false);
+    }
+  };
 
   const handleChange = (field: keyof Settings, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -69,8 +97,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     });
   };
 
-  const handleSave = (e?: React.FormEvent) => {
+  const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setIsFetchingModels(true);
+
+    // Fetch models on save for available keys
+    if (formData.groqApiKey) await fetchModelsForProvider('groq', formData.groqApiKey);
+    if (formData.googleApiKey) await fetchModelsForProvider('google', formData.googleApiKey);
+    if (formData.openaiApiKey) await fetchModelsForProvider('openai', formData.openaiApiKey, formData.openaiBaseUrl);
+
+    setIsFetchingModels(false);
     onSaveSettings(formData);
     setSavedNotice(true);
     setTimeout(() => {
@@ -225,7 +261,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <Key className="w-4 h-4 text-cyan-400" /> AI Providers Configuration
                   </h3>
                   <p className="text-xs text-zinc-400 mt-1">
-                    Manage direct API credentials for each provider. All keys are stored securely in browser LocalStorage.
+                    Pasting an API key auto-detects the provider and dynamically fetches available models.
                   </p>
                 </div>
 
@@ -242,7 +278,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       rel="noreferrer"
                       className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline"
                     >
-                      Get key from Google AI Studio <ExternalLink className="w-3 h-3" />
+                      Get free key from Google AI Studio <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
 
@@ -251,7 +287,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type={showGeminiKey ? 'text' : 'password'}
                       placeholder="AIzaSy..."
                       value={formData.googleApiKey}
-                      onChange={e => handleChange('googleApiKey', e.target.value)}
+                      onChange={e => handleKeyChange('googleApiKey', e.target.value)}
                       className="w-full pr-10 pl-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-amber-500/60 transition"
                     />
                     <button
@@ -269,7 +305,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-emerald-400 fill-current" />
-                      <h4 className="text-sm font-bold text-zinc-200">Groq Cloud (Ultra-Fast)</h4>
+                      <h4 className="text-sm font-bold text-zinc-200">Groq Cloud (Fast Inference)</h4>
                     </div>
                     <a
                       href="https://console.groq.com/keys"
@@ -286,7 +322,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       type={showGroqKey ? 'text' : 'password'}
                       placeholder="gsk_..."
                       value={formData.groqApiKey}
-                      onChange={e => handleChange('groqApiKey', e.target.value)}
+                      onChange={e => handleKeyChange('groqApiKey', e.target.value)}
                       className="w-full pr-10 pl-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-emerald-500/60 transition"
                     />
                     <button
@@ -315,7 +351,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         type={showOpenAIKey ? 'text' : 'password'}
                         placeholder="sk-..."
                         value={formData.openaiApiKey}
-                        onChange={e => handleChange('openaiApiKey', e.target.value)}
+                        onChange={e => handleKeyChange('openaiApiKey', e.target.value)}
                         className="w-full pr-10 pl-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-cyan-500/60 transition"
                       />
                       <button
@@ -347,7 +383,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-purple-400" />
-                      <h4 className="text-sm font-bold text-zinc-200">Local LLM Inference (Ollama / LM Studio)</h4>
+                      <h4 className="text-sm font-bold text-zinc-200">Enable Local Inference (Ollama / LM Studio)</h4>
                     </div>
 
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -363,7 +399,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                   {formData.enableLocal && (
                     <div className="space-y-2 pt-2 animate-in fade-in duration-150">
-                      <label className="text-[11px] font-medium text-zinc-400">Local Endpoint URL</label>
+                      <label className="text-[11px] font-medium text-zinc-400">Endpoint URL (no API key required)</label>
                       <input
                         type="text"
                         placeholder="http://localhost:11434/v1"
@@ -627,8 +663,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
         {/* Modal Bottom Footer Actions */}
         <div className="p-4 border-t border-zinc-800/80 bg-zinc-950/80 flex items-center justify-between flex-shrink-0">
-          <div className="text-[11px] text-zinc-500 font-mono">
-            Settings auto-persist in LocalStorage.
+          <div className="text-[11px] text-zinc-500 font-mono flex items-center gap-2">
+            {isFetchingModels ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                <span>Fetching dynamic models from provider...</span>
+              </>
+            ) : (
+              <span>Settings auto-persist in LocalStorage.</span>
+            )}
           </div>
 
           <div className="flex gap-3">
