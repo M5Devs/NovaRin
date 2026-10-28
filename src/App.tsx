@@ -68,10 +68,16 @@ export function App() {
     saveSettings(newSettings);
   };
 
+  const handleSelectModel = (modelId: string) => {
+    const updated = { ...settings, selectedModel: modelId };
+    setSettings(updated);
+    saveSettings(updated);
+  };
+
   const activeSession = sessions.find(s => s.id === activeSessionId) || null;
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 antialiased font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-zinc-950 text-zinc-100 antialiased font-sans">
       {/* Sidebar Component */}
       <Sidebar
         sessions={sessions}
@@ -89,6 +95,7 @@ export function App() {
         session={activeSession}
         settings={settings}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onSelectModel={handleSelectModel}
       />
 
       {/* Settings Modal */}

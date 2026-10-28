@@ -2,22 +2,10 @@ import type { Settings, ModelOption } from '../types';
 
 export const DEFAULT_MODELS: ModelOption[] = [
   {
-    id: 'gpt-4o-mini',
-    name: 'OpenAI GPT-4o Mini',
-    provider: 'openai',
-    description: 'Fast, lightweight and cost-effective model'
-  },
-  {
-    id: 'gpt-4o',
-    name: 'OpenAI GPT-4o',
-    provider: 'openai',
-    description: 'Flagship high-intelligence model'
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Google Gemini 1.5 Flash',
+    id: 'gemini-2.0-flash',
+    name: 'Google Gemini 2.0 Flash',
     provider: 'google',
-    description: 'Fast and versatile multimodal model'
+    description: 'Next-gen high speed multimodal model'
   },
   {
     id: 'gemini-1.5-pro',
@@ -27,9 +15,27 @@ export const DEFAULT_MODELS: ModelOption[] = [
   },
   {
     id: 'llama-3.3-70b-versatile',
-    name: 'Groq Llama 3.3 70B (via Custom OpenAI BaseURL)',
-    provider: 'custom',
-    description: 'High performance open model hosted on Groq / Custom Endpoint'
+    name: 'Groq Llama 3.3 70B',
+    provider: 'groq',
+    description: 'Ultra-fast inference on Groq LPU system'
+  },
+  {
+    id: 'mixtral-8x7b-32768',
+    name: 'Groq Mixtral 8x7B',
+    provider: 'groq',
+    description: 'High performance open mixture of experts'
+  },
+  {
+    id: 'gpt-4o',
+    name: 'OpenAI GPT-4o',
+    provider: 'openai',
+    description: 'Flagship high-intelligence model'
+  },
+  {
+    id: 'gpt-4o-mini',
+    name: 'OpenAI GPT-4o Mini',
+    provider: 'openai',
+    description: 'Fast, lightweight and cost-effective model'
   }
 ];
 
@@ -37,8 +43,12 @@ export const DEFAULT_SETTINGS: Settings = {
   openaiApiKey: '',
   openaiBaseUrl: '',
   googleApiKey: '',
+  groqApiKey: '',
+  enableLocal: false,
+  localEndpoint: 'http://localhost:11434/v1',
   selectedModel: 'gpt-4o-mini',
   systemPrompt: 'You are NovaRin, a helpful, precise, and concise AI assistant.',
+  temperature: 0.7,
   activePluginIds: ['word-counter']
 };
 

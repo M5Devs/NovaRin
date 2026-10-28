@@ -1,4 +1,4 @@
-export type ProviderType = 'openai' | 'google' | 'custom';
+export type ProviderType = 'openai' | 'google' | 'groq' | 'custom';
 
 export interface ModelOption {
   id: string;
@@ -9,10 +9,14 @@ export interface ModelOption {
 
 export interface Settings {
   openaiApiKey: string;
-  openaiBaseUrl: string; // Enables OpenRouter, Groq, Ollama, LM Studio, etc.
+  openaiBaseUrl: string; // Enables OpenRouter, DeepSeek, etc.
   googleApiKey: string;
+  groqApiKey: string;
+  enableLocal: boolean;
+  localEndpoint: string;
   selectedModel: string;
   systemPrompt: string;
+  temperature: number;
   activePluginIds: string[];
 }
 
