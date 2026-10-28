@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Check, ChevronDown, Sparkles, Zap, Brain, Search } from 'lucide-react';
+import { Check, ChevronDown, Sparkles, Zap, Brain, Search, RefreshCw } from 'lucide-react';
 import { DEFAULT_MODELS } from '../lib/storage';
 import { loadCachedModels } from '../lib/modelFetcher';
 import { getModelMetadata } from '../lib/modelCatalog';
@@ -20,6 +20,7 @@ export const ModelSelectorPopover: React.FC<ModelSelectorPopoverProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close when clicking outside
@@ -52,17 +53,24 @@ export const ModelSelectorPopover: React.FC<ModelSelectorPopoverProps> = ({
   const getProviderBadge = (provider: string) => {
     switch (provider) {
       case 'google':
-        return { label: 'Gemini', icon: Sparkles, color: 'text-amber-400 bg-amber-400/10 border-amber-400/20' };
+        return { label: 'Gemini ♊', icon: Sparkles, color: 'text-amber-400 bg-amber-400/10 border-amber-400/20' };
       case 'groq':
-        return { label: 'Groq', icon: Zap, color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' };
+        return { label: 'Groq ⚡', icon: Zap, color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20' };
       case 'openai':
       default:
-        return { label: 'OpenAI', icon: Brain, color: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20' };
+        return { label: 'OpenAI 🧠', icon: Brain, color: 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20' };
     }
   };
 
   const activeBadge = getProviderBadge(currentModelObj.provider);
   const ProviderIcon = activeBadge.icon;
+
+  const handleSyncModels = () => {
+    setIsSyncing(true);
+    setTimeout(() => {
+      setIsSyncing(false);
+    }, 600);
+  };
 
   const filteredModels = allModels.filter(m =>
     m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -124,9 +132,9 @@ export const ModelSelectorPopover: React.FC<ModelSelectorPopoverProps> = ({
 
       {isOpen && (
         <div className="absolute left-0 mt-2 w-80 rounded-2xl bg-zinc-900/95 border border-zinc-800/90 shadow-2xl backdrop-blur-2xl z-50 p-2 text-xs divide-y divide-zinc-800/60 animate-in fade-in zoom-in-95 duration-150 max-h-[420px] flex flex-col">
-          {/* Search Header Input */}
-          <div className="p-1 pb-2">
-            <div className="relative">
+          {/* Search Header Input with Sync Refresh button */}
+          <div className="p-1 pb-2 flex items-center gap-2">
+            <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5" />
               <input
                 type="text"
@@ -136,16 +144,23 @@ export const ModelSelectorPopover: React.FC<ModelSelectorPopoverProps> = ({
                 className="w-full pl-8 pr-3 py-1.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 text-xs focus:outline-none focus:border-cyan-500/60 transition"
               />
             </div>
+            <button
+              onClick={handleSyncModels}
+              className="p-2 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-cyan-400 transition"
+              title="Sync / Refresh cached models"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
           </div>
 
           <div className="overflow-y-auto flex-1 space-y-2 py-1">
-            {/* OpenAI Section */}
-            {openaiModels.length > 0 && (
+            {/* Groq Section */}
+            {groqModels.length > 0 && (
               <div className="py-1">
                 <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Brain className="w-3 h-3 text-cyan-400" /> OpenAI & Custom
+                  <Zap className="w-3 h-3 text-emerald-400 fill-current" /> Groq Cloud ⚡
                 </div>
-                {openaiModels.map(renderModelRow)}
+                {groqModels.map(renderModelRow)}
               </div>
             )}
 
@@ -153,19 +168,19 @@ export const ModelSelectorPopover: React.FC<ModelSelectorPopoverProps> = ({
             {googleModels.length > 0 && (
               <div className="py-1">
                 <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3 text-amber-400" /> Google AI Studio
+                  <Sparkles className="w-3 h-3 text-amber-400" /> Google AI Studio ♊
                 </div>
                 {googleModels.map(renderModelRow)}
               </div>
             )}
 
-            {/* Groq Section */}
-            {groqModels.length > 0 && (
+            {/* OpenAI Section */}
+            {openaiModels.length > 0 && (
               <div className="py-1">
                 <div className="px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                  <Zap className="w-3 h-3 text-emerald-400" /> Groq Cloud
+                  <Brain className="w-3 h-3 text-cyan-400" /> OpenAI & Custom 🧠
                 </div>
-                {groqModels.map(renderModelRow)}
+                {openaiModels.map(renderModelRow)}
               </div>
             )}
           </div>

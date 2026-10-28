@@ -8,9 +8,9 @@ export function getLanguageModel(settings: Settings, modelOverride?: string): { 
   const modelId = modelOverride || settings.selectedModel || 'gpt-4o-mini';
   const matchedPreset = DEFAULT_MODELS.find(m => m.id === modelId);
 
-  // Check provider type
+  // Check provider type explicitly
   const isGoogle = matchedPreset?.provider === 'google' || modelId.startsWith('gemini');
-  const isGroq = matchedPreset?.provider === 'groq' || modelId.includes('llama') || modelId.includes('mixtral');
+  const isGroq = matchedPreset?.provider === 'groq' || modelId.includes('llama') || modelId.includes('mixtral') || modelId.includes('qwen') || modelId.includes('gemma');
 
   if (isGoogle) {
     if (!settings.googleApiKey) {
@@ -24,12 +24,12 @@ export function getLanguageModel(settings: Settings, modelOverride?: string): { 
       modelId
     };
   } else if (isGroq) {
-    const apiKey = settings.groqApiKey || settings.openaiApiKey;
-    if (!apiKey) {
-      throw new Error('Groq API Key is missing. Please set it in Settings -> Providers.');
+    const groqKey = settings.groqApiKey || settings.openaiApiKey;
+    if (!groqKey) {
+      throw new Error('Groq API Key is missing. Please set it in Settings -> Providers -> Groq.');
     }
     const groqOpenAI = createOpenAI({
-      apiKey,
+      apiKey: groqKey,
       baseURL: 'https://api.groq.com/openai/v1',
     });
     return {
@@ -46,7 +46,7 @@ export function getLanguageModel(settings: Settings, modelOverride?: string): { 
       modelId
     };
   } else {
-    // Standard OpenAI or Custom OpenAI-compatible endpoint
+    // Standard OpenAI or Custom OpenAI-compatible provider
     if (!settings.openaiApiKey && !settings.openaiBaseUrl) {
       throw new Error('OpenAI API Key or Custom Base URL is missing. Please set it in Settings -> Providers.');
     }

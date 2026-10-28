@@ -265,47 +265,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </p>
                 </div>
 
-                {/* Google Gemini Card */}
-                <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 shadow-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-amber-400" />
-                      <h4 className="text-sm font-bold text-zinc-200">Google Gemini</h4>
-                    </div>
-                    <a
-                      href="https://aistudio.google.com/app/apikey"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline"
-                    >
-                      Get free key from Google AI Studio <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-
-                  <div className="relative">
-                    <input
-                      type={showGeminiKey ? 'text' : 'password'}
-                      placeholder="AIzaSy..."
-                      value={formData.googleApiKey}
-                      onChange={e => handleKeyChange('googleApiKey', e.target.value)}
-                      className="w-full pr-10 pl-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-amber-500/60 transition"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300"
-                    >
-                      {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
                 {/* Groq Cloud Card */}
                 <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Zap className="w-4 h-4 text-emerald-400 fill-current" />
                       <h4 className="text-sm font-bold text-zinc-200">Groq Cloud (Fast Inference)</h4>
+                      {formData.groqApiKey ? (
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" title="Groq Key Configured" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-rose-500/50" title="Groq Key Missing" />
+                      )}
                     </div>
                     <a
                       href="https://console.groq.com/keys"
@@ -335,12 +305,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </div>
 
+                {/* Google Gemini Card */}
+                <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 shadow-md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      <h4 className="text-sm font-bold text-zinc-200">Google Gemini</h4>
+                      {formData.googleApiKey ? (
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" title="Gemini Key Configured" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-rose-500/50" title="Gemini Key Missing" />
+                      )}
+                    </div>
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 hover:underline"
+                    >
+                      Get free key from Google AI Studio <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+
+                  <div className="relative">
+                    <input
+                      type={showGeminiKey ? 'text' : 'password'}
+                      placeholder="AIzaSy..."
+                      value={formData.googleApiKey}
+                      onChange={e => handleKeyChange('googleApiKey', e.target.value)}
+                      className="w-full pr-10 pl-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-100 text-xs focus:outline-none focus:border-amber-500/60 transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGeminiKey(!showGeminiKey)}
+                      className="absolute right-3 top-3 text-zinc-500 hover:text-zinc-300"
+                    >
+                      {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
                 {/* OpenAI & Custom Endpoints Card */}
                 <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 shadow-md">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Brain className="w-4 h-4 text-cyan-400" />
-                      <h4 className="text-sm font-bold text-zinc-200">OpenAI & Custom Endpoints (OpenRouter / DeepSeek)</h4>
+                      <h4 className="text-sm font-bold text-zinc-200">OpenAI & Custom Endpoints</h4>
+                      {formData.openaiApiKey || formData.openaiBaseUrl ? (
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" title="OpenAI / BaseURL Configured" />
+                      ) : (
+                        <span className="w-2 h-2 rounded-full bg-rose-500/50" title="OpenAI Unconfigured" />
+                      )}
                     </div>
                   </div>
 
@@ -384,6 +399,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <div className="flex items-center gap-2">
                       <Layers className="w-4 h-4 text-purple-400" />
                       <h4 className="text-sm font-bold text-zinc-200">Enable Local Inference (Ollama / LM Studio)</h4>
+                      {formData.enableLocal && (
+                        <span className="w-2 h-2 rounded-full bg-purple-400 shadow-sm shadow-purple-400/50" title="Local Inference Active" />
+                      )}
                     </div>
 
                     <label className="relative inline-flex items-center cursor-pointer">
